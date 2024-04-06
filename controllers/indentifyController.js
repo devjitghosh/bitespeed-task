@@ -7,12 +7,12 @@ const identifyController = async (req, res, next) => {
   const emails = [];
   const phoneNumbers = [];
   const secondaryContactIds = [];
-  if (req.body.email) {
-    emails.push(req.body.email);
-  }
-  if (req.body.phoneNumber) {
-    phoneNumbers.push(req.body.phoneNumber);
-  }
+  //   if (req.body.email) {
+  //     emails.push(req.body.email);
+  //   }
+  //   if (req.body.phoneNumber) {
+  //     phoneNumbers.push(req.body.phoneNumber);
+  //   }
   matchedContacts.forEach((element) => {
     if (element.email) emails.push(element.email);
     if (element.phoneNumber) phoneNumbers.push(element.phoneNumber);
@@ -47,9 +47,22 @@ const identifyController = async (req, res, next) => {
       .replace('T', ' '),
     deletedAt: null,
   };
-  const insertedContact = await database.insertContact(contact);
+  let insertRow = false;
+  if (req.body.email && emails.indexOf(req.body.email) === -1) {
+    emails.push(req.body.email);
+    insertRow = true;
+  }
+  if (
+    req.body.phoneNumber &&
+    phoneNumbers.indexOf(req.body.phoneNumber) === -1
+  ) {
+    phoneNumbers.push(req.body.phoneNumber);
+    insertRow = true;
+  }
+  let insertedContact;
+  if (insertRow) insertedContact = await database.insertContact(contact);
   console.log('insertedContact:', insertedContact);
-  if (matchedContacts.length) {
+  if (insertedContact && contact.linkPrecedence === 'secondary') {
     secondaryContactIds.push(insertedContact.insertId);
   }
   res.status(200).json({
