@@ -16,25 +16,27 @@ exports.getContacts = async ({ email, phoneNumber }) => {
     if (phoneNumber || email) {
       if (phoneNumber && email) {
         const [results] = await pool.query(
-          'SELECT * FROM contacts WHERE phoneNumber=? OR email=?',
+          'SELECT * FROM contacts WHERE phoneNumber=? OR email=? ORDER BY createdAt ASC',
           [phoneNumber, email]
         );
         records = results;
       } else if (phoneNumber) {
         const [results] = await pool.query(
-          'SELECT * FROM contacts WHERE phoneNumber=?',
+          'SELECT * FROM contacts WHERE phoneNumber=? ORDER BY createdAt ASC',
           [phoneNumber]
         );
         records = results;
       } else if (email) {
         const [results] = await pool.query(
-          'SELECT * FROM contacts WHERE email=?',
+          'SELECT * FROM contacts WHERE email=? ORDER BY createdAt ASC',
           [email]
         );
         records = results;
       }
     } else {
-      const [results] = await pool.query('SELECT * FROM contacts');
+      const [results] = await pool.query(
+        'SELECT * FROM contacts ORDER BY createdAt ASC'
+      );
       records = results;
     }
   } catch (error) {
@@ -48,6 +50,23 @@ exports.getContacts = async ({ email, phoneNumber }) => {
       (item) => item.linkPrecedence === 'primary'
     );
     console.log('primaryContactsDB', primaryContacts);
+  }
+
+  //if there are more than two primary contact
+  if (primaryContacts.length === 2) {
+    try {
+      const [results] = await pool.query(
+        'UPDATE contacts SET linkedId=?, linkPrecedence="secondary", updatedAt=? WHERE id=?',
+        [
+          primaryContacts[0].id,
+          new Date(Date.now()).toISOString().slice(0, 19).replace('T', ' '),
+          primaryContacts[1].id,
+        ]
+      );
+      linkedRecords = results;
+    } catch (error) {
+      console.error('Error updating contacts:', error);
+    }
   }
 
   let primaryId;
